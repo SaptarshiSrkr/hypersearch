@@ -1,6 +1,8 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import time
+import joblib
+import ast
 import multiprocessing
 import numpy as np
 import tensorflow as tf
@@ -48,9 +50,10 @@ class HyperSearch:
 
         self.units_per_layer_arr = self.generate_architectures()
 
-        # Processed data placeholders
+        # Processed data
         self.X_train = self.X_val = self.X_test = None
         self.y_train = self.y_val = self.y_test = None
+        self.preprocess_data()
 
     def preprocess_data(self):
         """
@@ -138,7 +141,6 @@ class HyperSearch:
         """
         Run the hyperparameter search in parallel using multiprocessing.
         """
-        self.preprocess_data()
         tasks = [
             (units, lrate, seed)
             for units in self.units_per_layer_arr
@@ -161,3 +163,30 @@ class HyperSearch:
 
         for p in active_processes:
             p.join()
+
+    def save_best_model(self):
+        """
+        Save the best model based on the custom loss.
+        """
+        configs = []
+        ratio_losses = []
+
+        joblib.dump(self.scaler, 'scaler.gz')
+
+        with open(self.log_name, "r") as f:
+            for line in f:
+                units = tuple(ast.literal_eval(line.split('],')[0]+']'))
+                lr = float(line.split('],')[1].split(',')[0])
+                s = int(line.split('],')[1].split(',')[1])
+                r_loss = float(line.split('],')[1].split(',')[4])
+
+                configs.append((units, lr, s))
+                ratio_losses.append(r_loss)
+
+        
+        best_config = min(zip(configs, ratio_losses), key=lambda x: x[1])
+        units_per_layer, lrate, seed = best_config[0]
+
+        tf.keras.utils.set_random_seed(seed)
+        model, n_epochs = self.build_model(units_per_layer, lrate)
+        model.save('best_model.keras')
