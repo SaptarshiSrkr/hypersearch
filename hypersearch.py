@@ -91,8 +91,9 @@ class HyperSearch:
 
         for units in units_per_layer:
             model.add(tf.keras.layers.Dense(units=units, activation="relu"))
-
-        model.add(tf.keras.layers.Dense(self.y_train.shape[1]))  # Output layer
+        
+        output_dim = 1 if len(self.y_train.shape) == 1 else self.y_train.shape[1]
+        model.add(tf.keras.layers.Dense(output_dim))
         optimizer = tf.keras.optimizers.AdamW(learning_rate=lrate)
 
         stop_early = tf.keras.callbacks.EarlyStopping(patience=50, restore_best_weights=True)
