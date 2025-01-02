@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 
 class HyperSearch:
-    def __init__(self, X, y, log_name, max_concurrent_processes=5, scaler_type='StandardScaler'):
+    def __init__(self, X, y, log_name, scaler_type='StandardScaler'):
         """
         Initialize the HyperSearch class for hyperparameter optimization.
 
@@ -26,7 +26,6 @@ class HyperSearch:
         self.X = X
         self.y = y
         self.log_name = log_name
-        self.max_concurrent_processes = max_concurrent_processes
 
         # Choose scaler based on user input
         if scaler_type == 'StandardScaler':
@@ -137,7 +136,7 @@ class HyperSearch:
 
         tf.keras.backend.clear_session()
 
-    def run_search(self):
+    def run_search(self, max_concurrent_processes):
         """
         Run the hyperparameter search in parallel using multiprocessing.
         """
@@ -155,7 +154,7 @@ class HyperSearch:
             active_processes.append(process)
 
             # Limit concurrent processes
-            while len(active_processes) >= self.max_concurrent_processes:
+            while len(active_processes) >= max_concurrent_processes:
                 for p in active_processes:
                     if not p.is_alive():
                         active_processes.remove(p)
