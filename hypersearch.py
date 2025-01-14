@@ -162,16 +162,14 @@ class HyperSearch:
 
         for p in active_processes:
             p.join()
-
-    def save_best_model(self):
+        
+    def get_best_model(self):
         """
-        Save the best model based on the custom loss.
+        Get the best model based on the custom loss.
         """
         configs = []
         ratio_losses = []
-
-        joblib.dump(self.scaler, 'scaler.gz')
-
+        
         with open(self.log_name, "r") as f:
             for line in f:
                 units = tuple(ast.literal_eval(line.split('],')[0]+']'))
@@ -182,10 +180,17 @@ class HyperSearch:
                 configs.append((units, lr, s))
                 ratio_losses.append(r_loss)
 
-        
         best_config = min(zip(configs, ratio_losses), key=lambda x: x[1])
-        units_per_layer, lrate, seed = best_config[0]
+        return best_config[0]
 
+    def save_best_model(self):
+        """
+        Save the best model based on the custom loss.
+        """
+        joblib.dump(self.scaler, 'scaler.gz')
+        
+        units_per_layer, lrate, seed = self.get_best_model()
+        
         tf.keras.utils.set_random_seed(seed)
         model, n_epochs = self.build_model(units_per_layer, lrate)
         model.save('best_model.keras')
